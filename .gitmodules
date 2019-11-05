@@ -1,0 +1,3 @@
+[submodule "NoteBookService"]
+	path = NoteBookService
+	url = https://github.com/tfassbender/NoteBookService.git
