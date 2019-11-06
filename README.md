@@ -4,6 +4,12 @@ A simple note manager client that connects to a java webservice: [NoteBookServic
 
 Notes can be added, received, updated and removed using the REST interface with a JSON-RPC 2.0 communication standard.
 
+# Build
+
+* Add the host's name and port to the file `src/main/resources/hosts_example.properties` and rename this file to `hosts.properties` (the file `hosts.properties` is ignored by git)
+* Build the project using maven: `mvn clean install compile`
+* Execute the created .jar file
+
 # Methods
 
 The methods that can be called using JSON-RPC 2.0 are:
