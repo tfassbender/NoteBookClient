@@ -15,10 +15,12 @@ public class HostConfiguration {
 	
 	private String hostUrl;
 	private int hostPort;
+	private String hostResourcePath;
 	
 	public static final String RESOURCE_FILE = "";
 	public static final String URL_IDENT = "HOST_URL";
 	public static final String PORT_IDENT = "HOST_PORT";
+	public static final String RESOURCE_PATH_IDENT = "HOST_RESOURCE_PATH";
 	
 	private HostConfiguration() {
 		try {
@@ -26,9 +28,10 @@ public class HostConfiguration {
 		}
 		catch (IOException e) {
 			LOGGER.error("Host configuration couldn't be loaded", e);
-			LOGGER.warn("Using default host configuration: localhost:8080");
+			LOGGER.warn("Using default host configuration: localhost:8080/NoteBookService/notebook/notebook/");
 			hostUrl = "localhost";
 			hostPort = 8080;
+			hostResourcePath = "NoteBookService/notebook/notebook/";
 		}
 	}
 	
@@ -47,8 +50,10 @@ public class HostConfiguration {
 		}
 		hostUrl = urlProperties.getProperty(URL_IDENT);
 		String hostPortString = urlProperties.getProperty(PORT_IDENT);
+		hostResourcePath = urlProperties.getProperty(RESOURCE_PATH_IDENT);
 		
-		if (hostUrl == null || hostUrl.equals("") || hostPortString == null || hostPortString.equals("")) {
+		if (hostUrl == null || hostUrl.equals("") || hostPortString == null || hostPortString.equals("") || hostResourcePath == null
+				|| hostResourcePath.equals("")) {
 			throw new IOException("No host configuration could be loaded from properties.");
 		}
 		try {
@@ -57,7 +62,7 @@ public class HostConfiguration {
 		catch (NumberFormatException nfe) {
 			throw new IOException("No host port could be loaded (port couldn't be parsed as int)", nfe);
 		}
-		LOGGER.info("Configuration loaded: host: " + hostUrl + " port: " + hostPort);
+		LOGGER.info("Configuration loaded: host: " + hostUrl + " port: " + hostPort + " resource path: " + hostResourcePath);
 	}
 	
 	public String getHostUrlWithPort() {
@@ -77,5 +82,12 @@ public class HostConfiguration {
 	}
 	public void setHostPort(int hostPort) {
 		this.hostPort = hostPort;
+	}
+	
+	public String getHostResourcePath() {
+		return hostResourcePath;
+	}
+	public void setHostResourcePath(String hostResourcePath) {
+		this.hostResourcePath = hostResourcePath;
 	}
 }
