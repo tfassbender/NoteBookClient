@@ -35,7 +35,7 @@ public class NoteManager {
 		int id = client.createNote(note);
 		note.setId(id);
 		LOGGER.info("Adding new note; notes id is: " + id);
-		notes.add(note);
+		notes.add(0, note);
 	}
 	
 	public void updateNote(Note note) throws NoteBookException {
@@ -47,13 +47,15 @@ public class NoteManager {
 		LOGGER.info("Deleting note: " + note);
 		NoteSelector selector = new NoteSelectorBuilder().addId(note.getId()).setIdRelation(NoteRelation.EQUALS).build();
 		client.deleteNotes(selector);
+		notes.remove(note);
 	}
-
+	
 	public void deleteNotes(List<Note> notes) throws NoteBookException {
 		List<Integer> noteIds = notes.stream().map(n -> n.getId()).collect(Collectors.toList());
 		LOGGER.info("Deleting notes; ids: " + noteIds);
 		NoteSelector selector = new NoteSelectorBuilder().addIds(noteIds).setIdRelation(NoteRelation.IN).build();
 		client.deleteNotes(selector);
+		notes.removeAll(notes);
 	}
 	
 	public List<Note> getUpdatedNotes() throws NoteBookException {

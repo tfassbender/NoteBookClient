@@ -17,7 +17,7 @@ public class HostConfiguration {
 	private int hostPort;
 	private String hostResourcePath;
 	
-	public static final String RESOURCE_FILE = "";
+	public static final String RESOURCE_FILE = "hosts.properties";
 	public static final String URL_IDENT = "HOST_URL";
 	public static final String PORT_IDENT = "HOST_PORT";
 	public static final String RESOURCE_PATH_IDENT = "HOST_RESOURCE_PATH";
@@ -66,7 +66,7 @@ public class HostConfiguration {
 	}
 	
 	public String getHostUrlWithPort() {
-		String urlWithPort = hostUrl + ":" + hostPort;
+		String urlWithPort = "http://" + hostUrl + ":" + hostPort;
 		return urlWithPort;
 	}
 	

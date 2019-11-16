@@ -1,0 +1,34 @@
+.h2 {
+	-fx-font-size: 22px;
+	-fx-font-weight: bold;
+}
+
+.h3 {
+	-fx-font-size: 18px;
+}
+
+.button {
+	-fx-font-size: 14px;
+	-fx-font-weight: bold;
+}
+
+.choice-box {
+	-fx-font-size: 14px;
+}
+
+.date-picker {
+	-fx-font-size: 14px;
+}
+
+.text-field {
+	-fx-font-size: 20px;
+	-fx-font-weight: bold;
+}
+
+.text-area {
+	-fx-font-size: 14px;
+}
+
+.list-view {
+	-fx-font-size: 20px;
+}
