@@ -40,7 +40,7 @@ public class NoteBookClientApp extends Application {
 		//load the css style
 		loadStyleConfiguration();
 		try {
-			LOGGER.info("Starting Application ---------------------------------------------------------------------------");
+			LOGGER.info("------------------------------------------------------- Starting Application -------------------------------------------------------");
 			URL fxmlUrl = getClass().getResource("NoteBookClient.fxml");
 			FXMLLoader fxmlLoader = new FXMLLoader(fxmlUrl);
 			controller = new NoteBookClientController();

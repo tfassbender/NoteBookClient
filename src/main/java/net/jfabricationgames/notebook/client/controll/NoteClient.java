@@ -208,9 +208,11 @@ public class NoteClient {
 			}
 			catch (IllegalStateException ise2) {
 				LOGGER.error("Response couldn't be parsed", ise2);
+				
+				throw new NoteBookCommunicationException("Response couldn't be parsed as JsonRpcResponse nor as JsonRpcErrorResponse", ise);
 			}
 			
-			throw new NoteBookCommunicationException("Response couldn't be parsed as JsonRpcResponse", ise);
+			throw new NoteBookCommunicationException("Response couldn't be parsed as JsonRpcResponse (was JsonRpcErrorResponse)", ise);
 		}
 	}
 	
