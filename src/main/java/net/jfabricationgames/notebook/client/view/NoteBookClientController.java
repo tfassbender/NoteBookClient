@@ -273,18 +273,20 @@ public class NoteBookClientController implements Initializable {
 	private void saveNote() {
 		LOGGER.debug("saving note");
 		Note currentNote = listNotes.getSelectionModel().getSelectedItem();
-		currentNote.setHeadline(textFieldNoteTitle.getText());
-		currentNote.setNoteText(textAreaNoteText.getText());
-		currentNote.setPriority(choiceBoxNotePriority.getValue());
-		currentNote.setExecutionDates(new ArrayList<>(executionDates));
-		currentNote.setReminderDates(new ArrayList<>(reminderDates));
-		
-		try {
-			noteManager.updateNote(currentNote);
-		}
-		catch (NoteBookException nbe) {
-			LOGGER.error("NoteBookExcepiton", nbe);
-			showExceptionDialog(nbe);
+		if (currentNote != null) {
+			currentNote.setHeadline(textFieldNoteTitle.getText());
+			currentNote.setNoteText(textAreaNoteText.getText());
+			currentNote.setPriority(choiceBoxNotePriority.getValue());
+			currentNote.setExecutionDates(new ArrayList<>(executionDates));
+			currentNote.setReminderDates(new ArrayList<>(reminderDates));
+			
+			try {
+				noteManager.updateNote(currentNote);
+			}
+			catch (NoteBookException nbe) {
+				LOGGER.error("NoteBookExcepiton", nbe);
+				showExceptionDialog(nbe);
+			}
 		}
 	}
 	
@@ -310,10 +312,16 @@ public class NoteBookClientController implements Initializable {
 		textFieldNoteTitle.setText(note.getHeadline());
 		textAreaNoteText.setText(note.getNoteText());
 		choiceBoxNotePriority.getSelectionModel().select(Integer.valueOf(note.getPriority()));
+		
 		executionDates.clear();
-		executionDates.addAll(note.getExecutionDates());
+		if (note.getExecutionDates() != null) {
+			executionDates.addAll(note.getExecutionDates());
+		}
+		
 		reminderDates.clear();
-		reminderDates.addAll(note.getReminderDates());
+		if (note.getReminderDates() != null) {
+			reminderDates.addAll(note.getReminderDates());
+		}
 	}
 	
 	private void addExecutionDate() {

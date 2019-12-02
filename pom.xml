@@ -23,6 +23,7 @@
 		<junit.version>5.4.0</junit.version>
 		<mockito.version>1.9.5</mockito.version>
 		<log4j.version>2.11.0</log4j.version>
+		<jackson-jsr310.version>2.9.7</jackson-jsr310.version>
 	</properties>
 
 	<dependencies>
@@ -109,6 +110,13 @@
 			<groupId>javax.activation</groupId>
 			<artifactId>activation</artifactId>
 			<version>1.1.1</version>
+		</dependency>
+
+		<!-- jsr310 for serializing and deserializing LocalDateTime -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+			<version>${jackson-jsr310.version}</version>
 		</dependency>
 	</dependencies>
 

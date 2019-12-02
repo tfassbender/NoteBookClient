@@ -18,6 +18,7 @@ import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import net.jfabricationgames.json_rpc.JsonRpcErrorResponse;
 import net.jfabricationgames.json_rpc.JsonRpcRequest;
@@ -72,7 +73,7 @@ public class NoteClient {
 			try {
 				@SuppressWarnings("unchecked")
 				List<Object> responseList = (List<Object>) response.getResult();
-				List<Note> notes = responseList.stream().map(Note::parseToNote).collect(Collectors.toList());
+				List<Note> notes = responseList.stream().map(Note::fromJsonRpcParametersSave).collect(Collectors.toList());
 				return notes;
 			}
 			catch (Exception e) {
@@ -147,8 +148,8 @@ public class NoteClient {
 	}
 	
 	private JsonRpcResponse sendRequestAndReceiveResponse(JsonRpcRequest request) throws NoteBookException {
-		//convert to JSON
-		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+		//convert to JSON (added JavaTimeModule to correctly serialize LocalDateTime objects)
+		ObjectWriter ow = new ObjectMapper().registerModule(new JavaTimeModule()).writer().withDefaultPrettyPrinter();
 		String json;
 		try {
 			json = ow.writeValueAsString(request);

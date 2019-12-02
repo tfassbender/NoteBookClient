@@ -49,7 +49,7 @@ public class NoteBookClientApp extends Application {
 			Scene scene = new Scene(root, 1000, 600);
 			//add css style
 			String styleResourceFile = styleProperties.getProperty(propertyStyleCss, "style_default.css");
-			String styleResource = getClass().getResource(styleResourceFile).toExternalForm();
+			String styleResource = getClass().getClassLoader().getResource(styleResourceFile).toExternalForm();
 			scene.getStylesheets().add(styleResource);
 			primaryStage.setScene(scene);
 			primaryStage.setTitle(APPLICATION_NAME);
