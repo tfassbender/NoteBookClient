@@ -62,6 +62,8 @@ public class NoteBookClientController implements Initializable {
 	private final ObservableList<LocalDateTime> executionDates = FXCollections.observableArrayList();
 	private final ObservableList<LocalDateTime> reminderDates = FXCollections.observableArrayList();
 	
+	private boolean noteChanged = false;
+	
 	@FXML
 	private ListView<Note> listNotes;
 	@FXML
@@ -192,6 +194,8 @@ public class NoteBookClientController implements Initializable {
 		buttonNewNote.setOnAction(e -> newNote());
 		buttonUpdateNoteList.setOnAction(e -> updateNoteList());
 		buttonSelectorSettings.setOnAction(e -> showSelectorSettings());
+		//disable the selector settings button till it is used
+		buttonSelectorSettings.setDisable(true);
 		
 		buttonSaveNote.setOnAction(e -> saveCurrentNote());
 		buttonDeleteNote.setOnAction(e -> deleteNote());
@@ -214,6 +218,11 @@ public class NoteBookClientController implements Initializable {
 		buttonReminderDateAddDay.setOnAction(e -> addTimeToReminderDate(0, 0, 1, 0));
 		buttonReminderDateAddWeek.setOnAction(e -> addTimeToReminderDate(0, 0, 7, 0));
 		buttonReminderDateAddMonth.setOnAction(e -> addTimeToReminderDate(0, 0, 0, 1));
+		
+		//select the first note
+		if (!notes.isEmpty()) {
+			listNotes.getSelectionModel().select(0);
+		}
 		
 		//use the headline to identify the note in the listview 
 		//(see: https://stackoverflow.com/questions/36657299/how-can-i-populate-a-listview-in-javafx-using-custom-objects)
@@ -241,6 +250,20 @@ public class NoteBookClientController implements Initializable {
 				.addListener((observable, oldVal, newVal) -> datePickerNoteExecutionDate.setDateTimeValue(newVal));
 		choiceBoxNoteReminderDate.getSelectionModel().selectedItemProperty()
 				.addListener((observable, oldVal, newVal) -> datePickerNoteReminderDate.setDateTimeValue(newVal));
+		
+		//add change listeners for auto-save function
+		textAreaNoteText.textProperty().addListener((observable, oldVal, newVal) -> noteChanged());
+		textFieldNoteTitle.textProperty().addListener((observable, oldVal, newVal) -> noteChanged());
+		choiceBoxNotePriority.getSelectionModel().selectedItemProperty().addListener((observable, oldVal, newVal) -> noteChanged());
+		choiceBoxNoteExecutionDate.getSelectionModel().selectedItemProperty().addListener((observable, oldVal, newVal) -> noteChanged());
+		choiceBoxNoteReminderDate.getSelectionModel().selectedItemProperty().addListener((observable, oldVal, newVal) -> noteChanged());
+	}
+	
+	/**
+	 * Mark that the note was changed and auto-save needs to notice.
+	 */
+	private void noteChanged() {
+		noteChanged = true;
 	}
 	
 	/**
@@ -308,8 +331,9 @@ public class NoteBookClientController implements Initializable {
 			if (note.getExecutionDates() != null) {
 				List<LocalDateTime> noteExecutionDates = new ArrayList<LocalDateTime>(note.getExecutionDates());
 				//remove all null values from the list
-				while (noteExecutionDates.remove(null))
+				while (noteExecutionDates.remove(null)) {
 					;
+				}
 				//add the dates to the observable list
 				executionDates.addAll(noteExecutionDates);
 				
@@ -322,8 +346,9 @@ public class NoteBookClientController implements Initializable {
 			if (note.getReminderDates() != null) {
 				List<LocalDateTime> noteReminderDates = new ArrayList<LocalDateTime>(note.getReminderDates());
 				//remove all null values from the list
-				while (noteReminderDates.remove(null))
+				while (noteReminderDates.remove(null)) {
 					;
+				}
 				//add the dates to the observable list
 				reminderDates.addAll(noteReminderDates);
 				
@@ -332,6 +357,9 @@ public class NoteBookClientController implements Initializable {
 					choiceBoxNoteReminderDate.getSelectionModel().select(0);
 				}
 			}
+			
+			//reset the noteChanged field for autosave
+			noteChanged = false;
 		}
 	}
 	
@@ -339,27 +367,35 @@ public class NoteBookClientController implements Initializable {
 		autoSaveChanges(listNotes.getSelectionModel().getSelectedItem());
 	}
 	private void autoSaveChanges(Note note) {
-		boolean autoSave = Boolean.parseBoolean(properties.getProperty(propertyAutoSave, "true"));
-		boolean askBeforeClosing = Boolean.parseBoolean(properties.getProperty(propertyAlwaysAskBeforeClosing, "true"));
-		if (autoSave) {
-			LOGGER.debug("autosaving note");
-			saveNote(note);
-		}
-		else if (askBeforeClosing) {
-			Alert alert = new Alert(AlertType.CONFIRMATION);
-			alert.setTitle("Notiz speichern");
-			alert.setHeaderText("Soll die aktuelle Notiz gespeichert werden?");
-			
-			Optional<ButtonType> result = alert.showAndWait();
-			if (result.get() == ButtonType.OK) {
-				LOGGER.debug("saving note after confirm dialog");
+		LOGGER.debug("autoSaveChanges was called");
+		if (noteChanged) {
+			boolean autoSave = Boolean.parseBoolean(properties.getProperty(propertyAutoSave, "true"));
+			boolean askBeforeClosing = Boolean.parseBoolean(properties.getProperty(propertyAlwaysAskBeforeClosing, "true"));
+			if (autoSave) {
+				LOGGER.debug("autosaving note");
 				saveNote(note);
+				noteChanged = false;
 			}
+			else if (askBeforeClosing) {
+				Alert alert = new Alert(AlertType.CONFIRMATION);
+				alert.setTitle("Notiz speichern");
+				alert.setHeaderText("Soll die aktuelle Notiz gespeichert werden?");
+				
+				Optional<ButtonType> result = alert.showAndWait();
+				if (result.get() == ButtonType.OK) {
+					LOGGER.debug("saving note after confirm dialog");
+					saveNote(note);
+					noteChanged = false;
+				}
+			}
+		}
+		else {
+			LOGGER.debug("Note was not changed - aborting autosave");
 		}
 	}
 	
 	private void showSelectorSettings() {
-		// TODO Auto-generated method stub
+		//not used yet
 	}
 	
 	private void saveCurrentNote() {
