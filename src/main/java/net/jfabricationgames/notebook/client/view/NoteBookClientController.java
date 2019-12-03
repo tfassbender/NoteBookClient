@@ -23,6 +23,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
@@ -133,14 +134,17 @@ public class NoteBookClientController implements Initializable {
 		//set default view selection (id of notes in descending order)
 		viewSelector = new NoteViewSelector();
 		viewSelector.setSortOrder(SortOrder.ID_DESC);
+		
 		//init priority values
 		List<Integer> priorities = new ArrayList<Integer>();
 		for (int i = minPriority; i >= maxPriority; i--) {//decrease because min priority is 5 and max is 1
 			priorities.add(i);
 		}
+		
 		//load properties
 		this.priorities = FXCollections.observableArrayList(priorities);
 		loadProperties();
+		
 		//create a note manager
 		try {
 			noteManager = new NoteManager();
@@ -227,6 +231,24 @@ public class NoteBookClientController implements Initializable {
 				}
 			}
 		});
+		
+		//connect the date lists
+		choiceBoxNoteExecutionDate.setItems(executionDates);
+		choiceBoxNoteReminderDate.setItems(reminderDates);
+		
+		//add selection models to the date lists to update the date-time pickers
+		choiceBoxNoteExecutionDate.getSelectionModel().selectedItemProperty()
+				.addListener((observable, oldVal, newVal) -> datePickerNoteExecutionDate.setDateTimeValue(newVal));
+		choiceBoxNoteReminderDate.getSelectionModel().selectedItemProperty()
+				.addListener((observable, oldVal, newVal) -> datePickerNoteReminderDate.setDateTimeValue(newVal));
+	}
+	
+	/**
+	 * Getting the scene within the initialize method won't work. Therefore this method is to be called from the Application class.
+	 */
+	public void sendScene(Scene scene) {
+		//register a window closing listener
+		scene.getWindow().setOnCloseRequest(e -> autoSaveChanges());
 	}
 	
 	private void newNote() {
@@ -273,7 +295,7 @@ public class NoteBookClientController implements Initializable {
 		Note note = newVal;
 		//don't auto save if the old value is null or not in the list (got removed)
 		if (oldVal != null && notes.contains(oldVal)) {
-			autoSaveChanges(oldVal);			
+			autoSaveChanges(oldVal);
 		}
 		
 		executionDates.clear();
@@ -284,11 +306,31 @@ public class NoteBookClientController implements Initializable {
 			choiceBoxNotePriority.getSelectionModel().select(Integer.valueOf(note.getPriority()));
 			
 			if (note.getExecutionDates() != null) {
-				executionDates.addAll(note.getExecutionDates());
+				List<LocalDateTime> noteExecutionDates = new ArrayList<LocalDateTime>(note.getExecutionDates());
+				//remove all null values from the list
+				while (noteExecutionDates.remove(null))
+					;
+				//add the dates to the observable list
+				executionDates.addAll(noteExecutionDates);
+				
+				//auto select the first entry if the list is not empty
+				if (!noteExecutionDates.isEmpty()) {
+					choiceBoxNoteExecutionDate.getSelectionModel().select(0);
+				}
 			}
 			
 			if (note.getReminderDates() != null) {
-				reminderDates.addAll(note.getReminderDates());
+				List<LocalDateTime> noteReminderDates = new ArrayList<LocalDateTime>(note.getReminderDates());
+				//remove all null values from the list
+				while (noteReminderDates.remove(null))
+					;
+				//add the dates to the observable list
+				reminderDates.addAll(noteReminderDates);
+				
+				//auto select the first entry if the list is not empty
+				if (!noteReminderDates.isEmpty()) {
+					choiceBoxNoteReminderDate.getSelectionModel().select(0);
+				}
 			}
 		}
 	}
@@ -364,7 +406,8 @@ public class NoteBookClientController implements Initializable {
 		LocalDateTime date = datePickerNoteExecutionDate.getDateTimeValue();
 		if (date != null) {
 			LOGGER.debug("adding execution date: {}", date);
-			executionDates.add(date);
+			executionDates.add(0, date);
+			choiceBoxNoteExecutionDate.getSelectionModel().select(0);
 		}
 		else {
 			LOGGER.debug("no execution date chosen that could be added");
@@ -376,6 +419,9 @@ public class NoteBookClientController implements Initializable {
 		if (selectedIndex >= 0) {
 			LOGGER.debug("deleting execution date (index: {})", selectedIndex);
 			executionDates.remove(selectedIndex);
+			if (!executionDates.isEmpty()) {
+				choiceBoxNoteExecutionDate.getSelectionModel().select(0);
+			}
 		}
 		else {
 			LOGGER.debug("no execution date selected that could be deleted");
@@ -386,7 +432,8 @@ public class NoteBookClientController implements Initializable {
 		LocalDateTime date = datePickerNoteReminderDate.getDateTimeValue();
 		if (date != null) {
 			LOGGER.debug("adding reminder date: {}", date);
-			reminderDates.add(date);
+			reminderDates.add(0, date);
+			choiceBoxNoteReminderDate.getSelectionModel().select(0);
 		}
 		else {
 			LOGGER.debug("no reminder date chosen that could be added");
@@ -398,6 +445,9 @@ public class NoteBookClientController implements Initializable {
 		if (selectedIndex >= 0) {
 			LOGGER.debug("deleting reminder date (index: {})", selectedIndex);
 			reminderDates.remove(selectedIndex);
+			if (!reminderDates.isEmpty()) {
+				choiceBoxNoteReminderDate.getSelectionModel().select(0);
+			}
 		}
 		else {
 			LOGGER.debug("no reminder date selected that could be deleted");
@@ -415,7 +465,14 @@ public class NoteBookClientController implements Initializable {
 			LOGGER.debug("still no date chosen; aborting");
 			return;
 		}
-		addTimeToDate(date, minutes, hours, days, months);
+		LocalDateTime newDate = addTimeToDate(date, minutes, hours, days, months);
+		
+		//update the date in the list
+		removeExecutionDate();
+		LOGGER.debug("adding updated execution date: {}", newDate);
+		executionDates.add(0, newDate);
+		//select the updated date
+		choiceBoxNoteExecutionDate.getSelectionModel().select(0);
 	}
 	
 	private void addTimeToReminderDate(int minutes, int hours, int days, int months) {
@@ -429,16 +486,26 @@ public class NoteBookClientController implements Initializable {
 			LOGGER.debug("still no date chosen; aborting");
 			return;
 		}
-		addTimeToDate(date, minutes, hours, days, months);
+		LocalDateTime newDate = addTimeToDate(date, minutes, hours, days, months);
+		
+		//update the date in the list
+		removeReminderDate();
+		LOGGER.debug("adding updated reminder date: {}", newDate);
+		reminderDates.add(0, newDate);
+		//select the updated date
+		choiceBoxNoteReminderDate.getSelectionModel().select(0);
 	}
 	
-	private void addTimeToDate(LocalDateTime date, int minutes, int hours, int days, int months) {
+	private LocalDateTime addTimeToDate(LocalDateTime date, int minutes, int hours, int days, int months) {
+		LocalDateTime newDate = date;
 		LOGGER.debug("updating date: {}", date);
-		date.plusMinutes(minutes);
-		date.plusHours(hours);
-		date.plusDays(days);
-		date.plusMonths(months);
-		LOGGER.debug("updated date to: {}", date);
+		newDate = newDate.plusMinutes(minutes);
+		newDate = newDate.plusHours(hours);
+		newDate = newDate.plusDays(days);
+		newDate = newDate.plusMonths(months);
+		LOGGER.debug("updated date to: {}", newDate);
+		
+		return newDate;
 	}
 	
 	private void showExceptionDialog(Throwable t) {

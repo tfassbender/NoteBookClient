@@ -54,6 +54,9 @@ public class NoteBookClientApp extends Application {
 			primaryStage.setScene(scene);
 			primaryStage.setTitle(APPLICATION_NAME);
 			primaryStage.show();
+			
+			//send the scene to the controller to register a window closing listener
+			controller.sendScene(scene);
 		}
 		catch (Exception e) {
 			LOGGER.error("Error while running the window ", e);
