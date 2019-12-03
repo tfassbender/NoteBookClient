@@ -29,6 +29,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -134,7 +135,7 @@ public class NoteBookClientController implements Initializable {
 		viewSelector.setSortOrder(SortOrder.ID_DESC);
 		//init priority values
 		List<Integer> priorities = new ArrayList<Integer>();
-		for (int i = minPriority; i <= maxPriority; i++) {
+		for (int i = minPriority; i >= maxPriority; i--) {//decrease because min priority is 5 and max is 1
 			priorities.add(i);
 		}
 		//load properties
@@ -181,14 +182,14 @@ public class NoteBookClientController implements Initializable {
 	@Override
 	public void initialize(URL arg0, ResourceBundle arg1) {
 		listNotes.setItems(notes);
-		listNotes.getSelectionModel().selectedItemProperty().addListener((observable, oldVal, newVal) -> updateSelectedNote());
+		listNotes.getSelectionModel().selectedItemProperty().addListener((observable, oldVal, newVal) -> updateSelectedNote(oldVal, newVal));
 		choiceBoxNotePriority.setItems(priorities);
 		
 		buttonNewNote.setOnAction(e -> newNote());
 		buttonUpdateNoteList.setOnAction(e -> updateNoteList());
 		buttonSelectorSettings.setOnAction(e -> showSelectorSettings());
 		
-		buttonSaveNote.setOnAction(e -> saveNote());
+		buttonSaveNote.setOnAction(e -> saveCurrentNote());
 		buttonDeleteNote.setOnAction(e -> deleteNote());
 		
 		buttonAddExecutionDate.setOnAction(e -> addExecutionDate());
@@ -209,6 +210,23 @@ public class NoteBookClientController implements Initializable {
 		buttonReminderDateAddDay.setOnAction(e -> addTimeToReminderDate(0, 0, 1, 0));
 		buttonReminderDateAddWeek.setOnAction(e -> addTimeToReminderDate(0, 0, 7, 0));
 		buttonReminderDateAddMonth.setOnAction(e -> addTimeToReminderDate(0, 0, 0, 1));
+		
+		//use the headline to identify the note in the listview 
+		//(see: https://stackoverflow.com/questions/36657299/how-can-i-populate-a-listview-in-javafx-using-custom-objects)
+		listNotes.setCellFactory(param -> new ListCell<Note>() {
+			
+			@Override
+			protected void updateItem(Note item, boolean empty) {
+				super.updateItem(item, empty);
+				
+				if (empty || item == null || item.getHeadline() == null) {
+					setText(null);
+				}
+				else {
+					setText(item.getHeadline());
+				}
+			}
+		});
 	}
 	
 	private void newNote() {
@@ -245,11 +263,45 @@ public class NoteBookClientController implements Initializable {
 	 */
 	private void updateNoteListLocally() {
 		LOGGER.debug("updating note list locally");
+		autoSaveChanges();
+		notes.clear();
+		notes.addAll(noteManager.getSelectedNotes(viewSelector));
+	}
+	
+	private void updateSelectedNote(Note oldVal, Note newVal) {
+		LOGGER.debug("updating shown note");
+		Note note = newVal;
+		//don't auto save if the old value is null or not in the list (got removed)
+		if (oldVal != null && notes.contains(oldVal)) {
+			autoSaveChanges(oldVal);			
+		}
+		
+		executionDates.clear();
+		reminderDates.clear();
+		if (note != null) {
+			textFieldNoteTitle.setText(note.getHeadline());
+			textAreaNoteText.setText(note.getNoteText());
+			choiceBoxNotePriority.getSelectionModel().select(Integer.valueOf(note.getPriority()));
+			
+			if (note.getExecutionDates() != null) {
+				executionDates.addAll(note.getExecutionDates());
+			}
+			
+			if (note.getReminderDates() != null) {
+				reminderDates.addAll(note.getReminderDates());
+			}
+		}
+	}
+	
+	private void autoSaveChanges() {
+		autoSaveChanges(listNotes.getSelectionModel().getSelectedItem());
+	}
+	private void autoSaveChanges(Note note) {
 		boolean autoSave = Boolean.parseBoolean(properties.getProperty(propertyAutoSave, "true"));
 		boolean askBeforeClosing = Boolean.parseBoolean(properties.getProperty(propertyAlwaysAskBeforeClosing, "true"));
 		if (autoSave) {
 			LOGGER.debug("autosaving note");
-			saveNote();
+			saveNote(note);
 		}
 		else if (askBeforeClosing) {
 			Alert alert = new Alert(AlertType.CONFIRMATION);
@@ -259,20 +311,21 @@ public class NoteBookClientController implements Initializable {
 			Optional<ButtonType> result = alert.showAndWait();
 			if (result.get() == ButtonType.OK) {
 				LOGGER.debug("saving note after confirm dialog");
-				saveNote();
+				saveNote(note);
 			}
 		}
-		notes.clear();
-		notes.addAll(noteManager.getSelectedNotes(viewSelector));
 	}
 	
 	private void showSelectorSettings() {
 		// TODO Auto-generated method stub
 	}
 	
-	private void saveNote() {
+	private void saveCurrentNote() {
+		saveNote(listNotes.getSelectionModel().getSelectedItem());
+	}
+	private void saveNote(Note note) {
 		LOGGER.debug("saving note");
-		Note currentNote = listNotes.getSelectionModel().getSelectedItem();
+		Note currentNote = note;//listNotes.getSelectionModel().getSelectedItem();
 		if (currentNote != null) {
 			currentNote.setHeadline(textFieldNoteTitle.getText());
 			currentNote.setNoteText(textAreaNoteText.getText());
@@ -297,30 +350,13 @@ public class NoteBookClientController implements Initializable {
 		}
 		LOGGER.debug("deleting note (id: {})", listNotes.getSelectionModel().getSelectedItem().getId());
 		try {
-			noteManager.deleteNote(listNotes.getSelectionModel().getSelectedItem());
+			Note toDelete = listNotes.getSelectionModel().getSelectedItem();
+			noteManager.deleteNote(toDelete);
+			notes.remove(toDelete);//also remove from list to prevent update errors
 		}
 		catch (NoteBookException nbe) {
 			LOGGER.error("NoteBookExcepiton", nbe);
 			showExceptionDialog(nbe);
-		}
-	}
-	
-	private void updateSelectedNote() {
-		LOGGER.debug("updating shown note");
-		Note note = listNotes.getSelectionModel().getSelectedItem();
-		
-		textFieldNoteTitle.setText(note.getHeadline());
-		textAreaNoteText.setText(note.getNoteText());
-		choiceBoxNotePriority.getSelectionModel().select(Integer.valueOf(note.getPriority()));
-		
-		executionDates.clear();
-		if (note.getExecutionDates() != null) {
-			executionDates.addAll(note.getExecutionDates());
-		}
-		
-		reminderDates.clear();
-		if (note.getReminderDates() != null) {
-			reminderDates.addAll(note.getReminderDates());
 		}
 	}
 	

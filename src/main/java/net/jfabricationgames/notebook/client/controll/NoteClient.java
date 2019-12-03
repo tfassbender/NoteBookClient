@@ -117,7 +117,7 @@ public class NoteClient {
 		
 		//create a request for adding a new note
 		JsonRpcRequest request = createGenericRequest();
-		request.setMethod(NoteBookServiceMethods.UPDATE_NOTE.getMethodName());
+		request.setMethod(NoteBookServiceMethods.DELETE_NOTES.getMethodName());
 		request.setParams(selector);
 		
 		JsonRpcResponse response = sendRequestAndReceiveResponse(request);
